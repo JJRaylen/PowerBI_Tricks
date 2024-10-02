@@ -1,0 +1,60 @@
+~Sparkline SL30_CSC_Chat = 
+// Static line color - use %23 instead of # for Firefox compatibility (Measure Derived from Eldersveld Modified by Kolosko)
+VAR LineColour = "%23118DFF"
+VAR GreenColour = "green"
+VAR RedColour = "red"
+VAR PointColour = "white"
+
+// "Date" field used in this example along the X axis
+VAR XMinDate = MIN(Dim_Date[Date])
+VAR XMaxDate = MAX(Dim_Date[Date])
+
+// Obtain overall min and overall max measure values when evaluated for each date
+VAR YMinValue = MINX(Values(Dim_Date[Date]),CALCULATE([%SL30_Chat_CSC]))
+VAR YMaxValue = MAXX(Values(Dim_Date[Date]),CALCULATE([%SL30_Chat_CSC]))
+
+// Calculate Y position for the 0.9 dashed line
+VAR DashedLineY = 50 - INT(50 * DIVIDE(0.9 - YMinValue, YMaxValue - YMinValue))
+
+// Build table of X & Y coordinates and fit to 50 x 150 viewbox
+VAR SparklineTable = ADDCOLUMNS(
+    SUMMARIZE('Dim_Date',Dim_Date[Date]),
+        "X",INT(150 * DIVIDE(Dim_Date[Date] - XMinDate, XMaxDate - XMinDate)),
+        "Y",INT(50 * DIVIDE([%SL30_Chat_CSC] - YMinValue,YMaxValue - YMinValue)))
+
+// Concatenate X & Y coordinates to build the sparkline
+VAR Lines = CONCATENATEX(SparklineTable,[X] & "," & 50-[Y]," ", Dim_Date[Date])
+
+// Adjust point color and circle stroke based on value < 0.9 (Red) or >= 0.9 (LineColour for stroke and Green for fill)
+VAR PointTable = 
+    ADDCOLUMNS(
+        SUMMARIZE('Dim_Date',Dim_Date[Date]),
+            "@Colour", IF([%SL30_Chat_CSC] < 0.9, RedColour, LineColour),
+        "@Points", 
+        "<circle cx='" & INT(150 * DIVIDE(Dim_Date[Date] - XMinDate, XMaxDate - XMinDate)) & "' cy='" & 50 - INT(50 * DIVIDE([%SL30_Chat_CSC] - YMinValue,YMaxValue - YMinValue)) & "' r='1' stroke='" & IF([%SL30_Chat_CSC] < 0.9, RedColour, LineColour) & "' stroke-width='0.5' fill='" & IF([%SL30_Chat_CSC] < 0.9, RedColour, LineColour) & "'/>")
+
+// Last data points on the line
+VAR LastSparkYValue = MAXX( FILTER(SparklineTable, Dim_Date[Date] = XMaxDate), [Y])
+VAR LastSparkXValue = MAXX( FILTER(SparklineTable, Dim_Date[Date] = XMaxDate), [X])
+
+// Add to SVG, and verify Data Category is set to Image URL for this measure
+VAR SVGImageURL = 
+    "data:image/svg+xml;utf8," & 
+    --- gradient---
+    "<svg xmlns='http://www.w3.org/2000/svg' x='0px' y='0px' viewBox='-7 -7 164 64'>" &
+    --- Dashed Line at 0.9 ---
+    "<line x1='0' y1='" & DashedLineY & "' x2='150' y2='" & DashedLineY & "' stroke='gray' stroke-width='1' stroke-dasharray='4' />" &
+    --- Sparkline ---
+    "<polyline 
+        fill='transparent' stroke='" & LineColour & "' 
+        stroke-linecap='round' stroke-linejoin='round' 
+        stroke-width='1' points=' " & Lines & 
+      " '/>" &
+    --- Points (adjust stroke and fill) ---
+        CONCATENATEX(PointTable,[@Points]) &
+    --- Last Point (with conditional color for both stroke and fill) ---
+        "<circle cx='" & LastSparkXValue & "' cy='" & 50 - LastSparkYValue & "' r='2' stroke='" & IF(MAXX(FILTER(SparklineTable, Dim_Date[Date] = XMaxDate), [%SL30_Chat_CSC]) < 0.9, PointColour, LineColour) & "' stroke-width='1' fill='" & PointColour & "' />" &
+        "</svg>"
+
+RETURN SVGImageURL
+
