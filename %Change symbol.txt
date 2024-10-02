@@ -1,0 +1,18 @@
+%DoD_Reach_(Lastday) With Symbol = 
+VAR uparrow = UNICHAR(11205)
+VAR downarrow = UNICHAR(11206)
+
+VAR lastday = MAX(Dimdate[Date])
+VAR yesterday = lastday-1
+
+VAR Reach_current = CALCULATE([%TOTAL REACH By_Day],Dimdate[Date]=lastday)
+VAR Reach_yesterday = CALCULATE(
+    [%TOTAL REACH By_Day],Dimdate[Date]=yesterday
+    )
+
+VAR DOD_Reach = IF(lastday >DATE(2024,7,1),
+                Reach_current-Reach_yesterday,BLANK())
+RETURN
+    IF(DOD_Reach<0, 
+    round(DOD_Reach,4)*100&"% "&downarrow,
+    round(DOD_Reach,4)*100&"% "&uparrow)
