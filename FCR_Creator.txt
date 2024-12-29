@@ -1,0 +1,18 @@
+%FCR4_hrs_creator = 
+    VAR case_solve_in_4hrs = CALCULATE(
+            COUNTROWS(Solve), 
+            'Solve'[is_fcr_4h]=1, 
+            'Solve'[is_not_spam]=1,
+            'Solve'[is_solved]=1,
+            USERELATIONSHIP(Solve[Agent_Create_ID],Dim_Roster[Agent ID]),
+            Dim_Roster[LOB]="TCV"
+    )
+    VAR solve_not_spam = CALCULATE(
+            COUNTROWS(Solve), 
+            'Solve'[is_not_spam]=1,
+            'Solve'[is_solved]=1,
+            USERELATIONSHIP(Solve[Agent_Create_ID],Dim_Roster[Agent ID]),
+            Dim_Roster[LOB]="TCV"
+    )
+    VAR result = DIVIDE(case_solve_in_4hrs,solve_not_spam)
+RETURN result
