@@ -1,0 +1,13 @@
+Loading time: 
+
+let
+    Source = DateTime.FixedLocalNow(),
+    #"Converted to Table" = #table(1, {{Source}}),
+    #"Renamed Columns" = Table.RenameColumns(#"Converted to Table",{{"Column1", "Reload"}}),
+    #"Changed Type" = Table.TransformColumnTypes(#"Renamed Columns",{{"Reload", type datetime}})
+in
+    #"Changed Type"
+
+------------------------------------------------
+
+Last Reload = "Last Reload: " & MAX('Reload'[Reload]) 
